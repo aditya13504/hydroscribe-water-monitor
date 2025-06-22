@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Droplets, 
@@ -22,7 +22,7 @@ import {
   Moon,
   Sun
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -56,14 +56,46 @@ export default function DashboardPage() {
     criticalThreshold: 80,
     warningThreshold: 60
   });
-
   // Use global dark mode
   const { isDarkMode, toggleDarkMode } = useDarkMode();
 
+  // Generate insights callback
+  const generateInsights = useCallback(async (data: WaterSensorData[]) => {
+    try {
+      let newInsights: AIInsight[];
+      
+      if (selectedAIModel === 'gemini') {
+        newInsights = await geminiAIService.generateWaterInsights(data);
+      } else if (selectedAIModel === 'nova-lite') {
+        newInsights = await novaLiteAI.generateWaterInsights(data);
+      } else {
+        newInsights = await mistralAIService.generateWaterInsights(data);
+      }
+      
+      setInsights(prev => [...newInsights, ...prev.slice(0, 5)]);
+    } catch (insightError) {
+      console.error('Error generating insights:', insightError);
+    }
+  }, [selectedAIModel]);
+
   // Real-time visualization data
-  const [realtimeData, setRealtimeData] = useState<any[]>([]);
-  const [sensorStatusData, setSensorStatusData] = useState<any[]>([]);
-  const [temperatureTrendData, setTemperatureTrendData] = useState<any[]>([]);
+  const [realtimeData, setRealtimeData] = useState<Array<{
+    time: string;
+    waterLevel: number;
+    temperature: number;
+    ph: number;
+  }>>([]);
+  const [sensorStatusData, setSensorStatusData] = useState<Array<{
+    name: string;
+    value: number;
+    color: string;
+  }>>([]);
+  const [temperatureTrendData, setTemperatureTrendData] = useState<Array<{
+    time: string;
+    avgTemp: number;
+    minTemp: number;
+    maxTemp: number;
+  }>>([]);
 
   // Real-time data simulation
   useEffect(() => {    const loadInitialData = async () => {
@@ -72,8 +104,7 @@ export default function DashboardPage() {
         // Load data from ThingSpeak or generate mock data for all 10 sensors
         let data;
         try {
-          data = await thingSpeakService.getDemoChannelData();
-        } catch (error) {
+          data = await thingSpeakService.getDemoChannelData();        } catch {
           console.log('Using mock data for all sensors');
           // Generate initial data for all 10 sensors
           data = Array.from({ length: 25 }, () => generateMockSensorData());
@@ -95,12 +126,10 @@ export default function DashboardPage() {
           active_alerts: alertCount,
           data_points_today: data.length,
           average_water_level: avgLevel
-        }));
-
-        // Generate AI insights
+        }));        // Generate AI insights
         await generateInsights(data);
-      } catch (error) {
-        console.error('Error loading data:', error);
+      } catch (loadError) {
+        console.error('Error loading data:', loadError);
       } finally {
         setIsLoading(false);
       }
@@ -109,26 +138,32 @@ export default function DashboardPage() {
     loadInitialData();    // Set up real-time updates every 30 seconds
     const interval = setInterval(async () => {
       const newData = generateMockSensorData();
-      setSensorData(prev => [newData, ...prev.slice(0, 19)]);      setLastUpdate(new Date());
+      let currentSensorData: WaterSensorData[] = [];
+      
+      setSensorData(prev => {
+        currentSensorData = prev;
+        return [newData, ...prev.slice(0, 19)];
+      });
+      
+      setLastUpdate(new Date());
       
       // Update real-time visualization data
       updateVisualizationData(newData);
       
       // Periodically regenerate insights
       if (Math.random() < 0.3) {
-        await generateInsights([newData, ...sensorData.slice(0, 4)]);
+        await generateInsights([newData, ...currentSensorData.slice(0, 4)]);
       }
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Regenerate insights when AI model changes
+    }, 5000);return () => clearInterval(interval);
+  }, [generateInsights]);  // Regenerate insights when AI model changes
   useEffect(() => {
-    if (sensorData.length > 0) {
-      generateInsights(sensorData.slice(0, 5));
-    }
-  }, [selectedAIModel]);
+    setSensorData(currentData => {
+      if (currentData.length > 0) {
+        generateInsights(currentData.slice(0, 5));
+      }
+      return currentData;
+    });
+  }, [selectedAIModel, generateInsights]);
 
   // Update visualization data
   const updateVisualizationData = (newSensorData: WaterSensorData) => {
@@ -170,10 +205,8 @@ export default function DashboardPage() {
         ph: newSensorData.ph_level || 7
       };
       return [...prev.slice(-14), newPoint]; // Keep last 15 points
-    });
-
-    // Update sensor status pie chart data with percentages
-    setSensorStatusData(prev => {
+    });    // Update sensor status pie chart data with percentages
+    setSensorStatusData(() => {
       const colors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6'];
       const total = 100;
       
@@ -207,26 +240,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (sensorData.length > 0) {
       updateVisualizationData(sensorData[0]);
-    }
-  }, [sensorData.length]);
-
-  const generateInsights = async (data: WaterSensorData[]) => {
-    try {
-      let newInsights: AIInsight[];
-      
-      if (selectedAIModel === 'gemini') {
-        newInsights = await geminiAIService.generateWaterInsights(data);
-      } else if (selectedAIModel === 'nova-lite') {
-        newInsights = await novaLiteAI.generateWaterInsights(data);
-      } else {
-        newInsights = await mistralAIService.generateWaterInsights(data);
-      }
-      
-      setInsights(prev => [...newInsights, ...prev.slice(0, 5)]);
-    } catch (error) {
-      console.error('Error generating insights:', error);
-    }
-  };
+    }  }, [sensorData]);
 
   const handleAskQuestion = async () => {
     if (!question.trim()) return;
@@ -265,7 +279,6 @@ export default function DashboardPage() {
     setSensorData(prev => [...newData, ...prev.slice(0, 17)]);
     
     // Update metrics
-    const uniqueSensors = [...new Set(newData.map(d => d.device_id))];
     const alertCount = newData.filter(d => d.water_level === 'CRITICAL').length;
     
     setMetrics(prev => ({
@@ -313,9 +326,8 @@ export default function DashboardPage() {
     // Show success message (you could add a toast notification here)
     alert('Alert settings saved successfully!');
   };
-
   // Prepare chart data
-  const chartData = sensorData.slice(0, 10).reverse().map((data, index) => ({
+  const chartData = sensorData.slice(0, 10).reverse().map((data) => ({
     time: new Date(data.timestamp).toLocaleTimeString(),
     waterLevel: data.water_level === 'CRITICAL' ? 100 : data.water_level === 'HIGH' ? 75 : 25,
     temperature: data.temperature || 0,
@@ -849,8 +861,7 @@ export default function DashboardPage() {
                           backgroundColor: 'white', 
                           border: '1px solid #e5e7eb', 
                           borderRadius: '8px' 
-                        }}
-                        formatter={(value: any, name: string) => [
+                        }}                        formatter={(value: number) => [
                           `${value}%`, 
                           'Water Level'
                         ]}
@@ -900,7 +911,7 @@ export default function DashboardPage() {
                           border: '1px solid #e5e7eb', 
                           borderRadius: '8px' 
                         }}
-                        formatter={(value: any, name: string) => [`${value}%`, name]}
+                        formatter={(value: number, name: string) => [`${value}%`, name]}
                       />
                     </PieChart>
                   </ResponsiveContainer>
@@ -946,8 +957,7 @@ export default function DashboardPage() {
                           backgroundColor: 'white', 
                           border: '1px solid #e5e7eb', 
                           borderRadius: '8px' 
-                        }}
-                        formatter={(value: any, name: string) => [
+                        }}                        formatter={(value: number, name: string) => [
                           `${value.toFixed(1)}°C`, 
                           name === 'avgTemp' ? 'Average' : 
                           name === 'minTemp' ? 'Minimum' : 'Maximum'
