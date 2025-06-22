@@ -1,5 +1,7 @@
 # 🌊 HydroScribe - Intelligent Water Monitoring System
 
+## vercel link: https://hydroscribe-water-monitor.vercel.app/
+
 ## 📋 Table of Contents
 
 - [🎯 Project Overview](#-project-overview)
@@ -30,9 +32,6 @@ HydroScribe is an intelligent water monitoring system that combines IoT hardware
 - **Cost Reduction**: 90% lower than traditional systems ($200-$500 vs $5,000-$15,000)
 - **Real-time Monitoring**: 24/7 water level, temperature, pH tracking
 - **AI-Powered**: Advanced prediction algorithms with multiple AI providers
-
-### 🏆 Built for Amazon Hackathon 2025
-This project demonstrates the integration of AWS services with modern web technologies to create a scalable, cost-effective water monitoring solution.
 
 ## ✨ Key Features
 
