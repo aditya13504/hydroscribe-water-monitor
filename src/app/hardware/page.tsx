@@ -13,6 +13,7 @@ import {
   ExternalLink,
   Code,
   Wrench,
+  Book,
   Play,
   Moon,
   Sun,
@@ -28,7 +29,6 @@ import { useDarkMode } from '@/contexts/DarkModeContext';
 export default function HardwarePage() {
   const searchParams = useSearchParams();
   const aiProvider = searchParams.get('ai') || 'aws';
-  const hostingProvider = searchParams.get('hosting') || 'aws';
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -312,13 +312,10 @@ void setup() {
       required: true
     }
   ];
+
   return (
     <motion.div 
-      className={`min-h-screen transition-colors duration-200 ${
-        hostingProvider === 'nvidia' 
-          ? (isDarkMode ? 'bg-green-900' : 'bg-green-50') 
-          : (isDarkMode ? 'bg-gray-900' : 'bg-gray-50')
-      }`}
+      className={`min-h-screen transition-colors duration-200 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}
       initial="hidden"
       animate="visible"
       variants={containerVariants}
@@ -582,7 +579,7 @@ void setup() {
                   }
                 }}
               />
-              <p className={`text-sm transition-colors duration-200 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Connect the 12V/2A power adapter to the UDOO board&apos;s power jack. Ensure stable power supply.</p>
+              <p className={`text-sm transition-colors duration-200 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Connect the 12V/2A power adapter to the UDOO board's power jack. Ensure stable power supply.</p>
             </motion.div>
 
             {/* Step 4-18 */}
