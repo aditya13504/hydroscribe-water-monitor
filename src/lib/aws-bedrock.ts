@@ -79,14 +79,16 @@ Keep messages clear, actionable, and suitable for both technical and non-technic
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error('No JSON found in response');
       
-      const parsed = JSON.parse(jsonMatch[0]);
-      
-      return parsed.insights.map((insight: any, index: number) => ({
-        id: `insight-${Date.now()}-${index}`,
+      const parsed = JSON.parse(jsonMatch[0]);      return parsed.insights.map((insight: {
+        message: string;
+        severity?: string;
+        type?: string;
+        confidence_score?: number;
+      }, index: number) => ({        id: `insight-${Date.now()}-${index}`,
         message: insight.message,
-        severity: insight.severity || 'info',
+        severity: (insight.severity || 'info') as 'info' | 'warning' | 'critical',
         timestamp: new Date().toISOString(),
-        type: insight.type || 'irrigation_advice',
+        type: (insight.type || 'irrigation_advice') as 'irrigation_advice' | 'flood_warning' | 'quality_alert',
         confidence_score: insight.confidence_score || 0.8
       }));
     } catch (error) {
@@ -94,9 +96,8 @@ Keep messages clear, actionable, and suitable for both technical and non-technic
       return this.getFallbackInsights();
     }
   }
-
   private getFallbackInsights(sensorData?: WaterSensorData[]): AIInsight[] {
-    const fallbackInsights = [
+    const fallbackInsights: AIInsight[] = [
       {
         id: `fallback-${Date.now()}`,
         message: 'Water monitoring system is active. Regular monitoring detected normal operations across all sensors.',

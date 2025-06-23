@@ -169,7 +169,12 @@ Please provide a comprehensive answer based on your expertise in water managemen
       const parsed = JSON.parse(jsonMatch[0]);
       const timestamp = Date.now();
       
-      return parsed.insights.map((insight: any, index: number) => ({
+      return parsed.insights.map((insight: {
+        message: string;
+        severity?: 'info' | 'warning' | 'critical';
+        type?: 'irrigation_advice' | 'flood_warning' | 'quality_alert';
+        confidence_score?: number;
+      }, index: number) => ({
         id: `mistral-insight-${timestamp}-${index}-${Math.random().toString(36).substr(2, 9)}`,
         message: insight.message,
         severity: insight.severity || 'info',

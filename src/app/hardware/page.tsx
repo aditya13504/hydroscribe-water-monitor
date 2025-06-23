@@ -1,19 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Cpu, 
   Wifi, 
   Zap, 
-  Download, 
-  Copy, 
+  Download,   Copy, 
   CheckCircle, 
   AlertCircle,
   ExternalLink,
   Code,
   Wrench,
-  Book,
   Play,
   Moon,
   Sun,
@@ -22,18 +20,29 @@ import {
   ZoomOut,
   RotateCcw
 } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 
 export default function HardwarePage() {
-  const searchParams = useSearchParams();
-  const aiProvider = searchParams.get('ai') || 'aws';
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotation, setRotation] = useState(0);
+  const [showNvidiaPopup, setShowNvidiaPopup] = useState(false);
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+
+  // Show NVIDIA Jetson Nano popup when on hardware page
+  useEffect(() => {
+    const hasSeenPopup = sessionStorage.getItem('nvidia-jetson-hardware-popup-seen');
+    if (!hasSeenPopup) {
+      setShowNvidiaPopup(true);
+    }
+  }, []);
+
+  // Handle NVIDIA Jetson Nano popup
+  const handleNvidiaPopupClose = () => {
+    setShowNvidiaPopup(false);
+    sessionStorage.setItem('nvidia-jetson-hardware-popup-seen', 'true');
+  };
 
   // Animation variants
   const containerVariants = {
@@ -312,10 +321,12 @@ void setup() {
       required: true
     }
   ];
-
   return (
     <motion.div 
-      className={`min-h-screen transition-colors duration-200 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}
+      className={`min-h-screen transition-colors duration-200`}
+      style={{
+        background: `linear-gradient(135deg, #76B900 0%, #8BC34A 50%, #76B900 100%)`
+      }}
       initial="hidden"
       animate="visible"
       variants={containerVariants}
@@ -579,14 +590,14 @@ void setup() {
                   }
                 }}
               />
-              <p className={`text-sm transition-colors duration-200 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Connect the 12V/2A power adapter to the UDOO board's power jack. Ensure stable power supply.</p>
+              <p className={`text-sm transition-colors duration-200 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Connect the 12V/2A power adapter to the UDOO board&apos;s power jack. Ensure stable power supply.</p>
             </motion.div>
 
             {/* Step 4-18 */}
             {[
               {
                 num: 4, title: "💾 MicroSD Setup", image: "/picture4.png", 
-                desc: "Insert the prepared microSD card with UDOO operating system into the board's card slot.",
+                desc: "Insert the prepared microSD card with UDOO operating system into the board&apos;s card slot.",
                 colors: isDarkMode ? "from-orange-900/50 to-amber-900/50 border-orange-800" : "from-orange-50 to-amber-50 border-orange-100"
               },
               {
@@ -841,9 +852,7 @@ void setup() {
                 <code>{awsIoTCode}</code>
               </pre>
             </div>
-          </motion.div>
-
-          {/* NVIDIA Integration Code */}
+          </motion.div>          {/* NVIDIA Integration Code */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -851,48 +860,41 @@ void setup() {
             className={`rounded-xl shadow-sm border transition-colors duration-200 ${
               isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
             }`}
-          >
-            <div className={`p-6 border-b transition-colors duration-200 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+          ><div className={`p-6 border-b transition-colors duration-200`} style={{ borderColor: '#5A8C00' }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <Zap className="w-6 h-6 text-green-600" />
+                  <Zap className="w-6 h-6" style={{ color: '#000000' }} />
                   <div>
-                    <h3 className={`text-lg font-semibold transition-colors duration-200 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>NVIDIA AI Integration</h3>
-                    <p className={`text-sm transition-colors duration-200 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Edge AI processing with real-time analysis</p>
+                    <h3 className={`text-lg font-semibold transition-colors duration-200`} style={{ color: '#000000' }}>NVIDIA AI Integration</h3>
+                    <p className={`text-sm transition-colors duration-200`} style={{ color: '#1A1A1A' }}>Edge AI processing with real-time analysis</p>
                   </div>
                 </div>
                 <motion.button
                   onClick={() => copyToClipboard(nvidiaIntegrationCode, 'nvidia')}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors duration-200 ${
-                    isDarkMode 
-                      ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' 
-                      : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
-                  }`}
+                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors duration-200`}
+                  style={{
+                    backgroundColor: '#5A8C00',
+                    color: '#FFFFFF'
+                  }}
                   variants={buttonVariants}
                   whileHover="hover"
                   whileTap="tap"
                 >
                   {copiedCode === 'nvidia' ? (
-                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <CheckCircle className="w-4 h-4" style={{ color: '#FFFFFF' }} />
                   ) : (
-                    <Copy className={`w-4 h-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`} />
+                    <Copy className="w-4 h-4" style={{ color: '#FFFFFF' }} />
                   )}
                   <span className="text-sm">{copiedCode === 'nvidia' ? 'Copied!' : 'Copy'}</span>
                 </motion.button>
               </div>
-            </div>
-            <div className="p-6">
-              <div className={`mb-4 p-4 border rounded-lg transition-colors duration-200 ${
-                isDarkMode 
-                  ? 'bg-green-900/20 border-green-800' 
-                  : 'bg-green-50 border-green-200'
-              }`}>
-                <h4 className={`font-semibold mb-2 transition-colors duration-200 ${
-                  isDarkMode ? 'text-green-300' : 'text-green-900'
-                }`}>🚀 AI-Enhanced Features</h4>
-                <p className={`text-sm transition-colors duration-200 ${
-                  isDarkMode ? 'text-green-200' : 'text-green-800'
-                }`}>This version includes real-time AI analysis of sensor data with critical alert detection.</p>
+            </div>            <div className="p-6">
+              <div className={`mb-4 p-4 border rounded-lg transition-colors duration-200`} style={{
+                backgroundColor: '#4A6B00',
+                borderColor: '#5A8C00'
+              }}>
+                <h4 className={`font-semibold mb-2 transition-colors duration-200`} style={{ color: '#FFFFFF' }}>🚀 AI-Enhanced Features</h4>
+                <p className={`text-sm transition-colors duration-200`} style={{ color: '#E8F5E1' }}>This version includes real-time AI analysis of sensor data with critical alert detection.</p>
               </div>
               <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
                 <code>{nvidiaIntegrationCode}</code>
@@ -1041,10 +1043,86 @@ void setup() {
               <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
                 {Math.round(zoomLevel * 100)}%
               </div>
-            </motion.div>
-          </motion.div>
+            </motion.div>          </motion.div>
         )}
       </AnimatePresence>
+
+      {/* NVIDIA Jetson Nano Enhancement Popup */}
+      {showNvidiaPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 50 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="bg-white rounded-2xl shadow-2xl p-8 m-4 max-w-lg w-full relative overflow-hidden"
+          >
+            {/* Decorative NVIDIA Green Accent */}
+            <div 
+              className="absolute top-0 left-0 right-0 h-2" 
+              style={{ backgroundColor: '#76B900' }}
+            ></div>
+            
+            {/* NVIDIA Logo-like Icon */}
+            <div className="flex justify-center mb-6">
+              <div 
+                className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg"
+                style={{ backgroundColor: '#76B900' }}
+              >
+                <Zap className="w-8 h-8 text-black" />
+              </div>
+            </div>
+
+            <div className="text-center">
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                ⚡ Hardware Enhancement Ready
+              </h3>
+              
+              <div className="mb-6">
+                <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full" style={{ backgroundColor: '#76B900' }}>
+                  <span className="text-black font-semibold text-sm">NVIDIA JETSON NANO</span>
+                </div>
+              </div>
+
+              <p className="text-gray-700 text-lg leading-relaxed mb-6">
+                Upgrade your UDOO setup with 
+                <strong className="text-gray-900"> NVIDIA Jetson Nano</strong> for 
+                enhanced AI capabilities, computer vision, and advanced sensor processing.
+              </p>
+
+              <div className="bg-gray-50 rounded-xl p-4 mb-6">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#76B900' }}></div>
+                    <span className="text-gray-700">GPU Acceleration</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#76B900' }}></div>
+                    <span className="text-gray-700">Computer Vision</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#76B900' }}></div>
+                    <span className="text-gray-700">ML Inference</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#76B900' }}></div>
+                    <span className="text-gray-700">IoT Integration</span>
+                  </div>
+                </div>
+              </div>
+
+              <motion.button
+                onClick={handleNvidiaPopupClose}
+                className="w-full py-4 px-6 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-lg"
+                style={{ backgroundColor: '#76B900' }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Understood! Continue to Hardware Setup
+              </motion.button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </motion.div>
   );
 }

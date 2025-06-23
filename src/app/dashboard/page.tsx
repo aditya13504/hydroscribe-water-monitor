@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Droplets, 
@@ -22,7 +22,7 @@ import {
   Moon,
   Sun
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -47,23 +47,61 @@ export default function DashboardPage() {
     system_uptime: 99.8
   });const [isLoading, setIsLoading] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(new Date());
-  const [question, setQuestion] = useState('');  const [answer, setAnswer] = useState('');  const [isAnswering, setIsAnswering] = useState(false);
-  const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
+  const [question, setQuestion] = useState('');  const [answer, setAnswer] = useState('');  const [isAnswering, setIsAnswering] = useState(false);  const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
   const [showAlertConfig, setShowAlertConfig] = useState(false);  const [showAllSensors, setShowAllSensors] = useState(false);
+  const [showNvidiaPopup, setShowNvidiaPopup] = useState(false);
   const [alertSettings, setAlertSettings] = useState({
     emailNotifications: true,
     smsAlerts: false,
     criticalThreshold: 80,
     warningThreshold: 60
-  });
+  });  // Import types
+  interface RealtimeDataPoint {
+    time: string;
+    waterLevel: number;
+    temperature: number;
+    ph: number;
+  }
+
+  interface SensorStatusDataPoint {
+    name: string;
+    value: number;
+    color: string;
+  }
+
+  interface TemperatureTrendDataPoint {
+    time: string;
+    avgTemp: number;
+    minTemp: number;
+    maxTemp: number;
+  }
 
   // Use global dark mode
   const { isDarkMode, toggleDarkMode } = useDarkMode();
 
   // Real-time visualization data
-  const [realtimeData, setRealtimeData] = useState<any[]>([]);
-  const [sensorStatusData, setSensorStatusData] = useState<any[]>([]);
-  const [temperatureTrendData, setTemperatureTrendData] = useState<any[]>([]);
+  const [realtimeData, setRealtimeData] = useState<RealtimeDataPoint[]>([]);
+  const [sensorStatusData, setSensorStatusData] = useState<SensorStatusDataPoint[]>([]);
+  const [temperatureTrendData, setTemperatureTrendData] = useState<TemperatureTrendDataPoint[]>([]);
+
+  // AI Insights generation function
+  const generateInsights = useCallback(async (data: WaterSensorData[]) => {
+    try {
+      let newInsights: AIInsight[];
+      
+      if (selectedAIModel === 'gemini') {
+        newInsights = await geminiAIService.generateWaterInsights(data);
+      } else if (selectedAIModel === 'nova-lite') {
+        newInsights = await novaLiteAI.generateWaterInsights(data);
+      } else {
+        newInsights = await mistralAIService.generateWaterInsights(data);
+      }
+      
+      setInsights(prev => [...newInsights, ...prev.slice(0, 5)]);
+    } catch (error) {
+      console.error('Error generating insights:', error);
+    }
+  }, [selectedAIModel]);
 
   // Real-time data simulation
   useEffect(() => {    const loadInitialData = async () => {
@@ -73,7 +111,7 @@ export default function DashboardPage() {
         let data;
         try {
           data = await thingSpeakService.getDemoChannelData();
-        } catch (error) {
+        } catch {
           console.log('Using mock data for all sensors');
           // Generate initial data for all 10 sensors
           data = Array.from({ length: 25 }, () => generateMockSensorData());
@@ -118,17 +156,23 @@ export default function DashboardPage() {
       if (Math.random() < 0.3) {
         await generateInsights([newData, ...sensorData.slice(0, 4)]);
       }
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Regenerate insights when AI model changes
+    }, 5000);    return () => clearInterval(interval);
+  }, []);  // Regenerate insights when AI model changes
   useEffect(() => {
     if (sensorData.length > 0) {
       generateInsights(sensorData.slice(0, 5));
     }
-  }, [selectedAIModel]);
+  }, [selectedAIModel, sensorData, generateInsights]);
+
+  // Show NVIDIA Jetson Nano popup when NVIDIA hosting is detected
+  useEffect(() => {
+    if (hostingProvider === 'nvidia') {
+      const hasSeenPopup = sessionStorage.getItem('nvidia-jetson-popup-seen');
+      if (!hasSeenPopup) {
+        setShowNvidiaPopup(true);
+      }
+    }
+  }, [hostingProvider]);
 
   // Update visualization data
   const updateVisualizationData = (newSensorData: WaterSensorData) => {
@@ -170,10 +214,8 @@ export default function DashboardPage() {
         ph: newSensorData.ph_level || 7
       };
       return [...prev.slice(-14), newPoint]; // Keep last 15 points
-    });
-
-    // Update sensor status pie chart data with percentages
-    setSensorStatusData(prev => {
+    });    // Update sensor status pie chart data with percentages
+    setSensorStatusData(() => {
       const colors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6'];
       const total = 100;
       
@@ -202,31 +244,11 @@ export default function DashboardPage() {
       return [...prev.slice(-11), newTempPoint]; // Keep last 12 points
     });
   };
-
   // Initialize visualization data
   useEffect(() => {
     if (sensorData.length > 0) {
       updateVisualizationData(sensorData[0]);
-    }
-  }, [sensorData.length]);
-
-  const generateInsights = async (data: WaterSensorData[]) => {
-    try {
-      let newInsights: AIInsight[];
-      
-      if (selectedAIModel === 'gemini') {
-        newInsights = await geminiAIService.generateWaterInsights(data);
-      } else if (selectedAIModel === 'nova-lite') {
-        newInsights = await novaLiteAI.generateWaterInsights(data);
-      } else {
-        newInsights = await mistralAIService.generateWaterInsights(data);
-      }
-      
-      setInsights(prev => [...newInsights, ...prev.slice(0, 5)]);
-    } catch (error) {
-      console.error('Error generating insights:', error);
-    }
-  };
+    }  }, [sensorData]); // This effect should run when sensorData changes
 
   const handleAskQuestion = async () => {
     if (!question.trim()) return;
@@ -258,15 +280,16 @@ export default function DashboardPage() {
     } finally {
       setIsAnswering(false);
     }
-  };  const refreshData = async () => {
+  };
+  const refreshData = async () => {
     setIsLoading(true);
+    
     // Generate new data from multiple sensors for better diversity
     const newData = Array.from({ length: 8 }, () => generateMockSensorData());
     setSensorData(prev => [...newData, ...prev.slice(0, 17)]);
     
     // Update metrics
-    const uniqueSensors = [...new Set(newData.map(d => d.device_id))];
-    const alertCount = newData.filter(d => d.water_level === 'CRITICAL').length;
+    const alertCount = newData.filter((d: WaterSensorData) => d.water_level === 'CRITICAL').length;
     
     setMetrics(prev => ({
       ...prev,
@@ -304,8 +327,7 @@ export default function DashboardPage() {
   // Handle alert configuration
   const handleConfigureAlerts = () => {
     setShowAlertConfig(!showAlertConfig);
-  };
-  // Handle saving alert settings
+  };  // Handle saving alert settings
   const handleSaveAlertSettings = () => {    // In a real app, this would save to backend
     console.log('Saving alert settings:', alertSettings);
     setShowAlertConfig(false);
@@ -314,20 +336,28 @@ export default function DashboardPage() {
     alert('Alert settings saved successfully!');
   };
 
+  // Handle NVIDIA Jetson Nano popup
+  const handleNvidiaPopupClose = () => {
+    setShowNvidiaPopup(false);
+    sessionStorage.setItem('nvidia-jetson-popup-seen', 'true');
+  };
   // Prepare chart data
-  const chartData = sensorData.slice(0, 10).reverse().map((data, index) => ({
+  const chartData = sensorData.slice(0, 10).reverse().map((data) => ({
     time: new Date(data.timestamp).toLocaleTimeString(),
     waterLevel: data.water_level === 'CRITICAL' ? 100 : data.water_level === 'HIGH' ? 75 : 25,
     temperature: data.temperature || 0,
     phLevel: data.ph_level || 7,
     flowRate: data.flow_rate || 0
-  }));
-  return (
+  }));  return (
     <div className={`min-h-screen transition-colors duration-500 ${
-      isDarkMode 
-        ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-gray-800' 
-        : 'bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50'
-    }`}>
+      hostingProvider === 'nvidia' 
+        ? 'bg-gradient-to-br from-green-400 via-green-500 to-green-600' 
+        : isDarkMode 
+          ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-gray-800' 
+          : 'bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50'
+    }`} style={hostingProvider === 'nvidia' ? { 
+      background: `linear-gradient(135deg, #76B900 0%, #8BC34A 50%, #76B900 100%)` 
+    } : undefined}>
       {/* Header */}
       <header className={`shadow-lg border-b transition-all duration-500 ${
         isDarkMode 
@@ -371,15 +401,17 @@ export default function DashboardPage() {
                 isDarkMode ? 'text-gray-300' : 'text-gray-600'
               }`}>
                 <span>Hosting:</span>
-                <div className="flex items-center space-x-1">
-                  {hostingProvider === 'nvidia' ? (
+                <div className="flex items-center space-x-1">                  {hostingProvider === 'nvidia' ? (
                     <>
-                      <Zap className="w-4 h-4 text-green-500" />
+                      <Zap className="w-4 h-4" style={{ color: '#76B900' }} />
                       <span className={`px-2 py-1 rounded text-xs font-semibold transition-all duration-300 hover:scale-105 ${
                         isDarkMode 
-                          ? 'bg-green-500/20 text-green-400' 
-                          : 'bg-green-100 text-green-800'
-                      }`}>NVIDIA</span>
+                          ? 'text-white' 
+                          : 'text-black'
+                      }`} style={{ 
+                        backgroundColor: isDarkMode ? '#76B900' : '#76B900',
+                        color: isDarkMode ? '#000000' : '#FFFFFF'
+                      }}>NVIDIA</span>
                     </>
                   ) : (
                     <>
@@ -849,8 +881,7 @@ export default function DashboardPage() {
                           backgroundColor: 'white', 
                           border: '1px solid #e5e7eb', 
                           borderRadius: '8px' 
-                        }}
-                        formatter={(value: any, name: string) => [
+                        }}                        formatter={(value: number) => [
                           `${value}%`, 
                           'Water Level'
                         ]}
@@ -900,7 +931,7 @@ export default function DashboardPage() {
                           border: '1px solid #e5e7eb', 
                           borderRadius: '8px' 
                         }}
-                        formatter={(value: any, name: string) => [`${value}%`, name]}
+                        formatter={(value: number, name: string) => [`${value}%`, name]}
                       />
                     </PieChart>
                   </ResponsiveContainer>
@@ -946,8 +977,7 @@ export default function DashboardPage() {
                           backgroundColor: 'white', 
                           border: '1px solid #e5e7eb', 
                           borderRadius: '8px' 
-                        }}
-                        formatter={(value: any, name: string) => [
+                        }}                        formatter={(value: number, name: string) => [
                           `${value.toFixed(1)}°C`, 
                           name === 'avgTemp' ? 'Average' : 
                           name === 'minTemp' ? 'Minimum' : 'Maximum'
@@ -1232,9 +1262,85 @@ export default function DashboardPage() {
                   </div>
                 )}
               </div>            </motion.div>
-          </div>
-        </div>
+          </div>        </div>
       </div>
+
+      {/* NVIDIA Jetson Nano Enhancement Popup */}
+      {showNvidiaPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 50 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="bg-white rounded-2xl shadow-2xl p-8 m-4 max-w-lg w-full relative overflow-hidden"
+          >
+            {/* Decorative NVIDIA Green Accent */}
+            <div 
+              className="absolute top-0 left-0 right-0 h-2" 
+              style={{ backgroundColor: '#76B900' }}
+            ></div>
+            
+            {/* NVIDIA Logo-like Icon */}
+            <div className="flex justify-center mb-6">
+              <div 
+                className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg"
+                style={{ backgroundColor: '#76B900' }}
+              >
+                <Zap className="w-8 h-8 text-black" />
+              </div>
+            </div>
+
+            <div className="text-center">
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                🚀 Future Enhancement Available
+              </h3>
+              
+              <div className="mb-6">
+                <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full" style={{ backgroundColor: '#76B900' }}>
+                  <span className="text-black font-semibold text-sm">NVIDIA JETSON NANO</span>
+                </div>
+              </div>
+
+              <p className="text-gray-700 text-lg leading-relaxed mb-6">
+                Take your water monitoring to the next level with 
+                <strong className="text-gray-900"> NVIDIA Jetson Nano</strong> - 
+                enabling real-time AI processing, advanced analytics, and edge computing capabilities.
+              </p>
+
+              <div className="bg-gray-50 rounded-xl p-4 mb-6">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#76B900' }}></div>
+                    <span className="text-gray-700">AI-Powered Analytics</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#76B900' }}></div>
+                    <span className="text-gray-700">Edge Computing</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#76B900' }}></div>
+                    <span className="text-gray-700">Real-time Processing</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#76B900' }}></div>
+                    <span className="text-gray-700">Enhanced Performance</span>
+                  </div>
+                </div>
+              </div>
+
+              <motion.button
+                onClick={handleNvidiaPopupClose}
+                className="w-full py-4 px-6 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-lg"
+                style={{ backgroundColor: '#76B900' }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Got it! Continue to Dashboard
+              </motion.button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* Alert Configuration Modal */}
       {showAlertConfig && (

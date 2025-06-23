@@ -116,10 +116,9 @@ export class ThingSpeakService {
   async getDemoChannelData(): Promise<WaterSensorData[]> {
     // Using a public demo channel or creating mock data
     const demoChannelId = '1417';
-    
-    try {
+      try {
       return await this.getChannelData(demoChannelId);
-    } catch (error) {
+    } catch {
       console.log('Using mock data for demo');
       return this.getMockData();
     }
