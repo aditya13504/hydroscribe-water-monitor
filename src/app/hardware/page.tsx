@@ -13,7 +13,6 @@ import {
   ExternalLink,
   Code,
   Wrench,
-  Book,
   Play,
   Moon,
   Sun,
@@ -583,7 +582,7 @@ void setup() {
                   }
                 }}
               />
-              <p className={`text-sm transition-colors duration-200 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Connect the 12V/2A power adapter to the UDOO board's power jack. Ensure stable power supply.</p>
+              <p className={`text-sm transition-colors duration-200 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Connect the 12V/2A power adapter to the UDOO board&apos;s power jack. Ensure stable power supply.</p>
             </motion.div>
 
             {/* Step 4-18 */}

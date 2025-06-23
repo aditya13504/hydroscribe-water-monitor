@@ -81,7 +81,12 @@ Keep messages clear, actionable, and suitable for both technical and non-technic
       
       const parsed = JSON.parse(jsonMatch[0]);
       
-      return parsed.insights.map((insight: any, index: number) => ({
+      return parsed.insights.map((insight: { 
+        message: string; 
+        severity?: 'info' | 'warning' | 'critical'; 
+        type?: 'flood_warning' | 'irrigation_advice' | 'maintenance_alert' | 'quality_concern'; 
+        confidence_score?: number 
+      }, index: number) => ({
         id: `insight-${Date.now()}-${index}`,
         message: insight.message,
         severity: insight.severity || 'info',
@@ -95,14 +100,13 @@ Keep messages clear, actionable, and suitable for both technical and non-technic
     }
   }
 
-  private getFallbackInsights(sensorData?: WaterSensorData[]): AIInsight[] {
-    const fallbackInsights = [
+  private getFallbackInsights(sensorData?: WaterSensorData[]): AIInsight[] {    const fallbackInsights: AIInsight[] = [
       {
         id: `fallback-${Date.now()}`,
         message: 'Water monitoring system is active. Regular monitoring detected normal operations across all sensors.',
-        severity: 'info' as const,
+        severity: 'info',
         timestamp: new Date().toISOString(),
-        type: 'irrigation_advice' as const,
+        type: 'irrigation_advice',
         confidence_score: 0.9
       }
     ];
@@ -110,10 +114,9 @@ Keep messages clear, actionable, and suitable for both technical and non-technic
     if (sensorData && sensorData.some(data => data.water_level === 'CRITICAL')) {
       fallbackInsights.push({
         id: `critical-${Date.now()}`,
-        message: 'CRITICAL: High water levels detected. Please monitor flood alerts and take necessary precautions.',
-        severity: 'critical' as const,
+        message: 'CRITICAL: High water levels detected. Please monitor flood alerts and take necessary precautions.',        severity: 'critical',
         timestamp: new Date().toISOString(),
-        type: 'flood_warning' as const,
+        type: 'flood_warning',
         confidence_score: 0.95
       });
     }

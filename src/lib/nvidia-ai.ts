@@ -143,7 +143,12 @@ Focus on practical recommendations for water management, irrigation optimization
       
       const parsed = JSON.parse(jsonMatch[0]);
       
-      return parsed.insights.map((insight: any, index: number) => ({
+      return parsed.insights.map((insight: { 
+        message: string; 
+        severity?: 'info' | 'warning' | 'critical'; 
+        type?: 'flood_warning' | 'irrigation_advice' | 'maintenance_alert' | 'quality_concern'; 
+        confidence_score?: number 
+      }, index: number) => ({
         id: `nvidia-insight-${Date.now()}-${index}`,
         message: insight.message,
         severity: insight.severity || 'info',
@@ -157,7 +162,12 @@ Focus on practical recommendations for water management, irrigation optimization
     }
   }
 
-  private parseFloodPrediction(response: string): any {
+  private parseFloodPrediction(response: string): { 
+    risk_level: 'low' | 'medium' | 'high'; 
+    prediction_confidence: number; 
+    time_to_critical: string; 
+    recommendations: string[] 
+  } {
     try {
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error('No JSON found in response');
