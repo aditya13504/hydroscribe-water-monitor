@@ -29,6 +29,7 @@ import { useDarkMode } from '@/contexts/DarkModeContext';
 export default function HardwarePage() {
   const searchParams = useSearchParams();
   const aiProvider = searchParams.get('ai') || 'aws';
+  const hostingProvider = searchParams.get('hosting') || 'aws';
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -312,10 +313,13 @@ void setup() {
       required: true
     }
   ];
-
   return (
     <motion.div 
-      className={`min-h-screen transition-colors duration-200 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}
+      className={`min-h-screen transition-colors duration-200 ${
+        hostingProvider === 'nvidia' 
+          ? (isDarkMode ? 'bg-green-900' : 'bg-green-50') 
+          : (isDarkMode ? 'bg-gray-900' : 'bg-gray-50')
+      }`}
       initial="hidden"
       animate="visible"
       variants={containerVariants}

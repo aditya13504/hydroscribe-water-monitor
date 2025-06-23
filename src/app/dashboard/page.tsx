@@ -321,12 +321,15 @@ export default function DashboardPage() {
     temperature: data.temperature || 0,
     phLevel: data.ph_level || 7,
     flowRate: data.flow_rate || 0
-  }));
-  return (
+  }));  return (
     <div className={`min-h-screen transition-colors duration-500 ${
-      isDarkMode 
-        ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-gray-800' 
-        : 'bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50'
+      hostingProvider === 'nvidia'
+        ? (isDarkMode 
+          ? 'bg-gradient-to-br from-green-900 via-emerald-900 to-green-800' 
+          : 'bg-gradient-to-br from-green-50 via-emerald-50 to-green-100')
+        : (isDarkMode 
+          ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-gray-800' 
+          : 'bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50')
     }`}>
       {/* Header */}
       <header className={`shadow-lg border-b transition-all duration-500 ${
