@@ -1,17 +1,6 @@
 # 🌊 HydroScribe - Intelligent Water Monitoring System
 
-<div align="center">
-
-![HydroScribe Banner](./public/picture1.png)
-
-**Next-level water monitoring with AI-powered insights**
-
-[![Next.js](https://img.shields.io/badge/Next.js-15.3.4-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
-[![AWS](https://img.shields.io/badge/AWS-Bedrock-orange?style=for-the-badge&logo=amazon-aws)](https://aws.amazon.com/bedrock/)
-[![NVIDIA](https://img.shields.io/badge/NVIDIA-NIM-green?style=for-the-badge&logo=nvidia)](https://developer.nvidia.com/)
-
-</div>
+## vercel link: https://hydroscribe-water-monitor.vercel.app/
 
 ## 📋 Table of Contents
 
@@ -43,9 +32,6 @@ HydroScribe is an intelligent water monitoring system that combines IoT hardware
 - **Cost Reduction**: 90% lower than traditional systems ($200-$500 vs $5,000-$15,000)
 - **Real-time Monitoring**: 24/7 water level, temperature, pH tracking
 - **AI-Powered**: Advanced prediction algorithms with multiple AI providers
-
-### 🏆 Built for Amazon Hackathon 2025
-This project demonstrates the integration of AWS services with modern web technologies to create a scalable, cost-effective water monitoring solution.
 
 ## ✨ Key Features
 
